@@ -1,16 +1,5 @@
 """
-Mutate sequences according to a specified mutation model. Mutation can either occur on randomly generated
-sequences (seqgen subcommand) or on sequences from a fasta file (seqscan subcommand).
-
-Future:
-* add option for fully expanding specified patterns into dicts or not
-* option for specifying motifs directly using [] regexps?
-* add flag for whether to spit out mut position in motifs out
-
-Valiate:
-* no overlapping motifs
-* mut position not ambiguous
-
+Core classes and control flow
 """
 
 import csv
@@ -179,4 +168,6 @@ def seqscan_iter(args):
  
 def seqgen_handler(args):
     raise ValueError("The seqgen functionality hasn't actually been built out yet. Sorry for the tease.")
+
+
 
