@@ -5,7 +5,7 @@ import argparse
 import random
 import csv
 import itertools as it
-from core import Mutator, seqscan_iter, seqgen_handler
+from core import seqscan_iter, seqgen_handler
 from utils import iunzip
 from Bio import SeqIO
 
@@ -72,17 +72,11 @@ def get_args():
     return parser.parse_args()
 
 
-def main(args):
+def main():
+    args = get_args()
     if args.seed:
         random.seed(args.seed)
     args.func(args)
-
-
-def test(args):
-    m = Mutator.from_file(args.model)
-    print m
-    print m.model
-    print m.mutate('CAAGCTK')
 
 
 if __name__ == '__main__':
