@@ -3,3 +3,4 @@ dist
 test.csv
 test.fasta
 mutgen.egg-info
+*.pyc
