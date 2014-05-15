@@ -5,13 +5,17 @@ import argparse
 import random
 import csv
 import itertools as it
-from core import seqscan_iter, seqgen_handler
+from core import Mutator
 from utils import iunzip
 from Bio import SeqIO
 
 
 def seqscan_handler(args):
-    mutated_seqs, matching_kmers = iunzip(seqscan_iter(args))
+    mutator = Mutator.from_file(args.model)
+    sequences = SeqIO.parse(args.sequences, 'fasta')
+    seqscan = mutator.seqscan(sequences, args.width)
+    # iunzip is a little overly fancy here, since as written, everything gets consumed anyway; stupid SeqIO
+    mutated_seqs, matching_kmers = iunzip(seqscan)
     # First write out sequences if needed
     if args.out_seqs:
         SeqIO.write(mutated_seqs, args.out_seqs, 'fasta')
@@ -22,6 +26,10 @@ def seqscan_handler(args):
         writer = csv.writer(args.out_kmers)
         writer.writerow(['kmer', 'mutated'])
         writer.writerows(it.chain(*matching_kmers))
+
+
+def seqgen_handler(args):
+    raise ValueError("The seqgen functionality hasn't actually been built out yet. Sorry for the tease.")
 
 
 def setup_common_args(subparser):
@@ -80,6 +88,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main(get_args())
+    main()
 
 
