@@ -6,7 +6,6 @@ import csv
 import copy
 import re
 import random
-from Bio import SeqIO
 from Bio.Seq import Seq
 
 
@@ -65,7 +64,7 @@ class Mutator(object):
     """Wrapper around a mutation model specification that takes care of the work of scanning sequences for
     mutations."""
     def __init__(self, spec):
-        """`spec` arg should be a list of lists: `[motif, mut_index, [A, C, G, T]]`. Note that the mut
+        """`spec` arg should be a list of lists: `[motif, mut_index, [(A, p), (C, p),...]]`. Note that the mut
         index should only point to one of ACGT, and not to any ambiguous characters."""
         # Attributes:
         self.mut_index = max(i for _, i, _ in spec)
@@ -114,7 +113,7 @@ class Mutator(object):
                 if re.match(motif, query_kmer):
                     # If they do, compute the new prob based on mutif
                     new_bp = mutif.mutate()
-                    return (bp == new_bp, new_bp)
+                    return (bp != new_bp, new_bp)
             # None of the motifs match, but since the bp is in mutable bases, we return False and the bp,
             # giving the interpretation that the model is assumed to be null here
             return (False, bp)
