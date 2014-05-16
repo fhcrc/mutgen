@@ -26,7 +26,8 @@ class TestGenerator(object):
     def make_test(self, name, testseq, patterns, result_probs, sample_size=None, almost_equal_places=None):
         """Construct the new class, where `name` is the name of the new class, `testseq` is a sequence which
         will be tested, `patterns` specifies the mutation patterns (see `core.Mutator.__init__`), and
-        `almost_equal_places` is a dictionary of kmers to expected mutation frequencies."""
+        `almost_equal_places` is a dictionary of kmers (or (kmer, new-base) pairs) to expected mutation
+        frequencies."""
 
         def setUp(test_case):
             test_case.seqrecords = [seqrecord(testseq) for i in xrange(self.sample_size)]
@@ -36,18 +37,22 @@ class TestGenerator(object):
 
         def test_frequencies(test_case):
             seqscan = test_case.mutator.seqscan(test_case.seqrecords)
-            results = dict((kmer, 0) for kmer in result_probs)
+            # Here key could either be a kmer or a (kmer, nt) pair
+            results = dict((key, 0) for key in result_probs)
             for _, matching_kmers in seqscan:
-                for kmer, mutated in matching_kmers:
-                    if mutated:
-                        try:
-                            results[kmer] += 1
-                        except KeyError:
-                            pass
+                for result in matching_kmers:
+                    kmer, mutated, mutated_to = map(lambda k: result[k], ['kmer', 'mutated', 'mutated_to'])
+                    for key in [kmer, (kmer, mutated_to)]:
+                        if mutated:
+                            try:
+                                results[key] += 1
+                            except KeyError:
+                                pass
+
             for kmer, count in results.iteritems():
                 freq = float(count) / test_case.sample_size
                 failmsg="Frequency of %s mutation was expected to be %s but was %s (diff: %s)." % (
-                        kmer, freq, result_probs[kmer], abs(freq - result_probs[kmer]))
+                        kmer, result_probs[kmer], freq, abs(freq - result_probs[kmer]))
                 test_case.assertAlmostEqual(freq, result_probs[kmer], places=test_case.almost_equal_places,
                         msg=failmsg)
 

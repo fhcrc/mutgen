@@ -23,8 +23,8 @@ def seqscan_handler(args):
     if args.out_kmers:
         # XXX - we should throw in the sequence name as well
         #writer = csv.DictWriter(args.out_kmers)
-        writer = csv.writer(args.out_kmers)
-        writer.writerow(['kmer', 'mutated'])
+        writer = csv.DictWriter(args.out_kmers, fieldnames=['kmer', 'mutated', 'mutated_to'])
+        writer.writeheader()
         writer.writerows(it.chain(*matching_kmers))
 
 

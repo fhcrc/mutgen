@@ -41,9 +41,9 @@ class Mutif(object):
         self.prob_ranges = []
         start = 0
         end = None
-        prob_sum = sum(prob for _, prob in spec)
+        prob_sum = sum(prob for _, prob in spec.iteritems())
         assert prob_sum < 1.00000001, "Sum of probabilities must not be greater than 1.0"
-        for base, prob in spec:
+        for base, prob in ((b, float(spec.get(b, 0.0))) for b in 'ACGT'):
             if base == mutable_base:
                 prob += 1.0 - prob_sum
             end = start + prob
@@ -64,7 +64,7 @@ class Mutator(object):
     """Wrapper around a mutation model specification that takes care of the work of scanning sequences for
     mutations."""
     def __init__(self, spec):
-        """`spec` arg should be a list of lists: `[motif, mut_index, [(A, p), (C, p),...]]`. Note that the mut
+        """`spec` arg should be a list of lists: `[motif, mut_index, {A: p, C: p, ...}]`. Note that the mut
         index should only point to one of ACGT, and not to any ambiguous characters."""
         # Attributes:
         self.mut_index = max(i for _, i, _ in spec)
@@ -90,7 +90,7 @@ class Mutator(object):
     def from_file(cls, handle):
         """Load up mutator object from file."""
         reader = csv.DictReader(handle)
-        return cls([[r['motif'], int(r['mut_index']), [(b, float(r.get(b, 0.0))) for b in 'ACGT']]
+        return cls([[r['motif'], int(r['mut_index']), dict((b, float(r.get(b, 0.0))) for b in 'ACGT')]
                 for r in reader])
 
     def __repr__(self):
@@ -143,10 +143,12 @@ class Mutator(object):
                     # Only add to list if kmer is actually as long as it's supposed to be
                     if len(kmer) == width:
                         # XXX - need to hook in here to decide what to do with mutable base in output
-                        #matching_kmers.append(dict(kmer=kmer, mutated=mutated))
-                        matching_kmers.append((kmer, mutated))
+                        result = dict(kmer=kmer, mutated=mutated, mutated_to=mutated_to)
+                        matching_kmers.append(result)
+
                 # Add the mutated_to value (which may just actually be the old bp) to the growing seq
                 new_seq += mutated_to
+
             # add the last bit of the sequence on, the part on the other side of mut_index that can't be mutated
             new_seq += seq[len(seq) - self.width + self.mut_index:]
             # Create a new seqrecord copy and give it the new_seq
