@@ -16,6 +16,8 @@ class TestGenerator(object):
     """Class for constructing TestCase subclasses with all the logic needed to test impirical frequencies
     based on a given mutation model."""
 
+    __test__ = False
+
     def __init__(self, sample_size, almost_equal_places):
         """Construct the generator object; sample_size and almost_equal_places can be specified here and used
         as defaults for all TestCase subclasses generated"""
