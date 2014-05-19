@@ -8,8 +8,6 @@ from core import Mutator
 from Bio import SeqIO
 
 
-#def inner_seqscan_handler(model, sequences, width, 
-
 class PositivesReached(Exception):
     pass
 
