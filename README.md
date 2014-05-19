@@ -33,11 +33,12 @@ The `-k|--out-kmers` file will contain a list of the kmers with a mutable base p
 
 ### Future:
 
+* add cols for mutable_base, new_base, and new_kmer; swap out mutated_to for new_base
 * add option for fully expanding specified patterns into dicts or not
 * option for specifying motifs directly using [] regexps?
-* add flag for whether to spit out mut position in motifs out
 
 ### Valiate?:
 
-* no overlapping motifs
+* no overlapping motifs - currently, the software just matches on the first pattern and mutates that.
+  Should either let it match multiple and add the probs or maybe just validate that none of the motifs overlap (though this might be rather tricky)
 
