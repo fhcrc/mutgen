@@ -134,23 +134,21 @@ class Mutator(object):
             new_seq = seq[0:self.mut_index]
             # Init matching_mker list and go to town
             matching_kmers = []
-            for i in xrange(self.mut_index, len(seq) - self.width + self.mut_index):
+            for i in xrange(len(seq) - width):
                 kmer = seq[i:i+width]
                 mutated, mutated_to = self.mutate(kmer)
                 # this means the kmer's mutable bases is within the scope of our model, so we care about it for
                 # the kmer out (matching_kmers)
                 if mutated is not None:
-                    # Only add to list if kmer is actually as long as it's supposed to be
-                    if len(kmer) == width:
-                        # XXX - need to hook in here to decide what to do with mutable base in output
-                        result = dict(kmer=kmer, mutated=mutated, mutated_to=mutated_to)
-                        matching_kmers.append(result)
+                    # XXX - need to hook in here to decide what to do with mutable base in output
+                    result = dict(kmer=kmer, mutated=mutated, mutated_to=mutated_to)
+                    matching_kmers.append(result)
 
                 # Add the mutated_to value (which may just actually be the old bp) to the growing seq
                 new_seq += mutated_to
 
             # add the last bit of the sequence on, the part on the other side of mut_index that can't be mutated
-            new_seq += seq[len(seq) - self.width + self.mut_index:]
+            new_seq += seq[len(seq) - width + self.mut_index:]
             # Create a new seqrecord copy and give it the new_seq
             new_sr = copy.copy(sr)
             new_sr.seq = Seq(new_seq)
