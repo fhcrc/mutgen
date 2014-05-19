@@ -3,29 +3,62 @@
 
 import argparse
 import random
-import csv
-import itertools as it
+import csv              
 from core import Mutator
-from utils import iunzip
 from Bio import SeqIO
+
+
+#def inner_seqscan_handler(model, sequences, width, 
+
+class PositivesReached(Exception):
+    pass
 
 
 def seqscan_handler(args):
     mutator = Mutator.from_file(args.model)
-    sequences = SeqIO.parse(args.sequences, 'fasta')
-    seqscan = mutator.seqscan(sequences, args.width)
-    # iunzip is a little overly fancy here, since as written, everything gets consumed anyway; stupid SeqIO
-    mutated_seqs, matching_kmers = iunzip(seqscan)
-    # First write out sequences if needed
-    if args.out_seqs:
-        SeqIO.write(mutated_seqs, args.out_seqs, 'fasta')
-    # Next write out kmers if needed
-    if args.out_kmers:
-        # XXX - we should throw in the sequence name as well
-        #writer = csv.DictWriter(args.out_kmers)
-        writer = csv.DictWriter(args.out_kmers, fieldnames=['kmer', 'mutated', 'mutated_to'])
-        writer.writeheader()
-        writer.writerows(it.chain(*matching_kmers))
+    positives = 0
+
+    kmer_fieldnames = ['kmer', 'mutated', 'mutated_to', 'sequence']
+    if args.replicates > 1:
+        kmer_fieldnames.append('replicate')
+    if args.positives:
+        kmer_fieldnames.append('positives')
+
+    kmer_writer = csv.DictWriter(args.out_kmers, fieldnames=kmer_fieldnames, extrasaction='ignore') if args.out_kmers else None
+    kmer_writer.writeheader()
+
+    try:
+        for replicate in xrange(args.replicates):
+            args.sequences.seek(0)
+            sequences = SeqIO.parse(args.sequences, 'fasta')
+
+            for mutated_seq, matching_kmers in mutator.seqscan(sequences, args.width):
+                # First write out sequence if needed
+                if args.out_seqs:
+                    SeqIO.write([mutated_seq], args.out_seqs, 'fasta')
+                # Next write out kmers if needed
+                if args.out_kmers:
+                    for kmer_data in matching_kmers:
+                        mutated = kmer_data['mutated']
+                        if mutated:
+                            positives += 1
+                        # Break out if we have a max_positives set
+                        if args.positives and positives > args.positives:
+                            raise PositivesReached
+                        # If we haven't reached positives_max yet, write row to file
+                        kmer_data.update(positives=args.positives, replicate=replicate, sequence=mutated_seq.id)
+                        kmer_writer.writerow(kmer_data)
+
+    # Break out if we are stopping at a given positives count
+    except PositivesReached:
+        pass
+
+    # Close up shop
+    finally:
+        if args.out_seqs:
+            args.out_seqs.close()
+        if args.out_kmers:
+            args.out_kmers.close()
 
 
 def seqgen_handler(args):
@@ -41,7 +74,7 @@ def setup_common_args(subparser):
     subparser.add_argument('-w', '--width', type=int, help="""Specify width of generated k-mer in seqgen, or
         in seqscan, the length of the k-mers considered for mutation and written to --motifs output file,
         if specified.""")
-    subparser.add_argument('-r', '--replicates', type=int,
+    subparser.add_argument('-r', '--replicates', type=int, default=1,
         help="""Repeat entire process the specified number of times.""")
     subparser.add_argument('-S', '--seed', help="Specify random seed")
 
@@ -51,11 +84,12 @@ def setup_seqscan(subparsers):
     setup_common_args(subparser)
     subparser.add_argument('sequences', type=argparse.FileType('r'), help="Input Fasta with sequences to mutate")
     subparser.add_argument('-s', '--out-seqs', type=argparse.FileType('w'),
-        help="Output sequences with inline mutations")
+        help="Output mutated sequences")
     subparser.add_argument('-k', '--out-kmers', type=argparse.FileType('w'),
         help="Output CSV of mutated and non-mutated kmers")
     subparser.add_argument('-p', '--positives', type=int,
-        help="""If set, scan through sequences till the specified number of positives have been hit""")
+        help="""If set, scan through sequences till specified number of positives have been hit (does not
+        currently 'rescan' sequences, but may in future)""")
     subparser.set_defaults(func=seqscan_handler)
 
 
