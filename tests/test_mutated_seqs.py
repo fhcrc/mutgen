@@ -27,6 +27,7 @@ class TestNonzeroPosition(unittest.TestCase):
         for mutated_seq, _ in self.model.seqscan(self.seqs):
             self.assertEqual(str(mutated_seq.seq), "TTTTAATTTT")
 
+
 class TestCustomWidth(unittest.TestCase):
     def setUp(self):
         self.model = core.Mutator([('TGA', 1, {'A': 0.99999})])
@@ -35,4 +36,20 @@ class TestCustomWidth(unittest.TestCase):
     def test_mutated_seq(self):
         for mutated_seq, _ in self.model.seqscan(self.seqs, width=4):
             self.assertEqual(str(mutated_seq.seq), "TTTTAATTTT")
+
+
+class TestOverlappingMotifs(unittest.TestCase):
+    def setUp(self):
+        self.model = core.Mutator([('GGG', 1, {'A': 0.99999})])
+        self.seqs = [helpers.seqrecord("TTTGGGGTTT")]
+
+    def test_default(self):
+        for mutated_seq, _ in self.model.seqscan(self.seqs):
+            self.assertEqual(str(mutated_seq.seq), "TTTGAGGTTT")
+
+    def test_match_unmutated(self):
+        for mutated_seq, _ in self.model.seqscan(self.seqs, match_mutated=False):
+            self.assertEqual(str(mutated_seq.seq), 'TTTGAAGTTT')
+
+
 

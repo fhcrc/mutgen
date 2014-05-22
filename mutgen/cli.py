@@ -30,7 +30,8 @@ def seqscan_handler(args):
             args.sequences.seek(0)
             sequences = SeqIO.parse(args.sequences, 'fasta')
 
-            for mutated_seq, matching_kmers in mutator.seqscan(sequences, args.width):
+            for mutated_seq, matching_kmers in mutator.seqscan(sequences, width=args.width,
+                    match_mutated=not args.relaxed_sampling):
                 # First write out sequence if needed
                 if args.out_seqs:
                     SeqIO.write([mutated_seq], args.out_seqs, 'fasta')
@@ -88,6 +89,11 @@ def setup_seqscan(subparsers):
     subparser.add_argument('-p', '--positives', type=int,
         help="""If set, scan through sequences till specified number of positives have been hit (does not
         currently 'rescan' sequences, but may in future)""")
+    subparser.add_argument('-R', '--relaxed-sampling', action="store_true",
+        help="""By default, this program 'scans' along the sequence, mutating things as it goes. This means
+        that the motif surrounding a mutable base depends on the mutations that came before it. Specifying
+        this flag relaxes this assumption, so that the pre-mutation context is all that's considered in
+        computating mutation probabilities.""")
     subparser.set_defaults(func=seqscan_handler)
 
 

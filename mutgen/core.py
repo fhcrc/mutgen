@@ -121,12 +121,13 @@ class Mutator(object):
             # bp is not mutable so return (None, bp) as described in docstring
             return (None, bp)
 
-    def seqscan(self, seqrecords, width=None):
+    def seqscan(self, seqrecords, width=None, match_mutated=True):
         """Generator function that - given the model, sequences and optionally width, yields a stream
         of pairs. Each pair contains the mutated sequence and a list of tuples that looks like (kmer, mutated),
         but only returns kmers where the mut_index position in the kmmer is in the models mutable_bases. The
         width specification overrides self.width, thereby controlling length of kmers coming out of
-        matching_kmers list."""
+        matching_kmers list. The match_mutated argument controls whether the motifs used for matching are
+        computed from the sequence that is being mutated (default) or from the original unmutated sequence."""
         width = width or self.width
         for sr in seqrecords:
             # Start new sequence with part not mutatable under model; we'll grow it
@@ -135,7 +136,7 @@ class Mutator(object):
             # Init matching_mker list and go to town
             matching_kmers = []
             for i in xrange(len(seq) - width):
-                kmer = seq[i:i+width]
+                kmer = (new_seq + seq[i+self.mut_index:] if match_mutated else seq)[i:i+width]
                 mutated, mutated_to = self.mutate(kmer)
                 # this means the kmer's mutable bases is within the scope of our model, so we care about it for
                 # the kmer out (matching_kmers)
