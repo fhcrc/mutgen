@@ -1,0 +1,14 @@
+language: python
+python:
+  - '2.7'
+
+install:
+  - "pip install -q biopython"
+  - "pip install --use-mirrors ."
+
+script: nosetests
+
+notifications:
+  email:
+    - cmccoy@fhcrc.org
+    - csmall@fhcrc.org
