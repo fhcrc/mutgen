@@ -1,0 +1,16 @@
+
+# CHANGELOG
+
+
+## 0.2.1
+
+* Added iter method to Mutator class for iterating through components
+* To accompolish ^, moved the regexps/patterns into the Mutif model, so Mutator just references these
+* Added --extra CLI flag as alternative for setting width
+* Fixed bug with replicates 
+* Add version to main help output
+
+## 0.1.1
+
+* Early release...
+

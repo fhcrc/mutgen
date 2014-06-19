@@ -4,6 +4,7 @@
 import argparse
 import random
 import csv              
+from version import __version__
 from core import Mutator
 from Bio import SeqIO
 
@@ -22,8 +23,6 @@ def seqscan_handler(args):
         # That is, default to mutator.width
         width = None
 
-    positives = 0
-
     kmer_fieldnames = ['kmer', 'mutated', 'mutated_to', 'sequence']
     if args.replicates > 1:
         kmer_fieldnames.append('replicate')
@@ -33,8 +32,10 @@ def seqscan_handler(args):
     kmer_writer = csv.DictWriter(args.out_kmers, fieldnames=kmer_fieldnames, extrasaction='ignore') if args.out_kmers else None
     kmer_writer.writeheader()
 
-    try:
-        for replicate in xrange(args.replicates):
+    for replicate in xrange(args.replicates):
+        positives = 0
+
+        try:
             args.sequences.seek(0)
             sequences = SeqIO.parse(args.sequences, 'fasta')
 
@@ -56,16 +57,15 @@ def seqscan_handler(args):
                         kmer_data.update(positives=args.positives, replicate=replicate, sequence=mutated_seq.id)
                         kmer_writer.writerow(kmer_data)
 
-    # Break out if we are stopping at a given positives count
-    except PositivesReached:
-        pass
+        # Break out if we are stopping at a given positives count
+        except PositivesReached:
+            pass
 
     # Close up shop
-    finally:
-        if args.out_seqs:
-            args.out_seqs.close()
-        if args.out_kmers:
-            args.out_kmers.close()
+    if args.out_seqs:
+        args.out_seqs.close()
+    if args.out_kmers:
+        args.out_kmers.close()
 
 
 def seqgen_handler(args):
@@ -120,7 +120,7 @@ def setup_seqgen(subparsers):
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__ + ' v' + __version__, formatter_class=argparse.RawDescriptionHelpFormatter)
     subparsers = parser.add_subparsers(title="subcommands",
         help="""Select operation mode (for help with specified mode, add -h flag)""")
     setup_seqscan(subparsers)
