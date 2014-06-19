@@ -14,6 +14,14 @@ class PositivesReached(Exception):
 
 def seqscan_handler(args):
     mutator = Mutator.from_file(args.model)
+    if args.width:
+        width = args.width
+    elif args.extra:
+        width = mutator.width + args.extra
+    else:
+        # That is, default to mutator.width
+        width = None
+
     positives = 0
 
     kmer_fieldnames = ['kmer', 'mutated', 'mutated_to', 'sequence']
@@ -30,7 +38,7 @@ def seqscan_handler(args):
             args.sequences.seek(0)
             sequences = SeqIO.parse(args.sequences, 'fasta')
 
-            for mutated_seq, matching_kmers in mutator.seqscan(sequences, width=args.width,
+            for mutated_seq, matching_kmers in mutator.seqscan(sequences, width=width,
                     match_mutated=not args.relaxed_sampling):
                 # First write out sequence if needed
                 if args.out_seqs:
@@ -73,6 +81,8 @@ def setup_common_args(subparser):
     subparser.add_argument('-w', '--width', type=int, help="""Specify width of generated k-mer in seqgen, or
         in seqscan, the length of the k-mers considered for mutation and written to --motifs output file,
         if specified.""")
+    subparser.add_argument('-e', '--extra', type=int, help="""Specify width by specifying how much extra
+            padding should be added to the natural width of the model specification.""")
     subparser.add_argument('-r', '--replicates', type=int, default=1,
         help="""Repeat entire process the specified number of times.""")
     subparser.add_argument('-S', '--seed', help="Specify random seed")
