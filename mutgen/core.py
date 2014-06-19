@@ -9,7 +9,7 @@ import random
 from Bio.Seq import Seq
 
 
-_AMBIGUOUS_MAP = {
+_AMBIGUOUS_MAP_FULL = {
        'R': 'GAR',      # GA
        'Y': 'TCY',      # TY
        'K': 'GTK',      # GT
@@ -22,29 +22,48 @@ _AMBIGUOUS_MAP = {
        'V': 'GCARMSV',  # GCA (^T)
        'N': 'AGCTRYKMSWBDHVN'}
 
+_AMBIGUOUS_MAP = {
+       'R': 'GA',      # GA
+       'Y': 'TC',      # TY
+       'K': 'GT',      # GT
+       'M': 'AC',      # AC
+       'S': 'GC',      # GC
+       'W': 'AT',      # AT
+       'B': 'GTC',  # GTC (^A)
+       'D': 'GAT',  # GAT (^C)
+       'H': 'ACT',  # ACT (^G)
+       'V': 'GCA',  # GCA (^T)
+       'N': 'AGCT',
+       '.': 'ACGT'}
+
 
 def regify_ambiguous(motif):
     def unambiguous(b):
         b = b.capitalize()
-        amb = _AMBIGUOUS_MAP.get(b)
+        amb = _AMBIGUOUS_MAP_FULL.get(b)
         return '[' + amb + ']' if amb else b
     return ''.join(map(unambiguous, motif))
 
 
 class Mutif(object):
-    def __init__(self, mutable_base, spec):
-        """Takes an list of (base, prob) pairs, corresponding to the probability to mutating to a given base.
+    def __init__(self, pattern, mut_index, spec):
+        """Takes a list of (base, prob) pairs, corresponding to the probability to mutating to a given base.
         The prob corresponding to `mutable_base` will be incremented by the value needed for the sum of the
         probs to equal 1."""
 
-        self.mutable_base = mutable_base
+        self.pattern = pattern
+        self.re_pattern = regify_ambiguous(pattern)
+        self.mutable_base = self.pattern[mut_index]
+        self.spec = spec
+
+        # Build up the probability ranges to be be searched through for which base to mutate to
         self.prob_ranges = []
         start = 0
         end = None
         prob_sum = sum(prob for _, prob in spec.iteritems())
         assert prob_sum < 1.00000001, "Sum of probabilities must not be greater than 1.0"
         for base, prob in ((b, float(spec.get(b, 0.0))) for b in 'ACGT'):
-            if base == mutable_base:
+            if base == self.mutable_base:
                 prob += 1.0 - prob_sum
             end = start + prob
             self.prob_ranges.append([start, end, base])
@@ -58,6 +77,17 @@ class Mutif(object):
         p = random.random()
         _, _, bp = filter(lambda x: x[0] <= p and p < x[1], self.prob_ranges)[0]
         return bp
+
+    def match(self, kmer):
+        return re.match(self.re_pattern, kmer)
+
+    def matching_kmers(self):
+        """All unambiguous versions of pattern. XXX - need to lazify"""
+        result = [[]]
+        for c in self.pattern:
+            result = [i + [a] for i in result
+                for a in _AMBIGUOUS_MAP.get(c, c)]
+        return [''.join(i) for i in result]
 
 
 class Mutator(object):
@@ -84,7 +114,7 @@ class Mutator(object):
             self.mutable_bases.add(mutable_base)
 
             # Add our models
-            self.model.append((regify_ambiguous(motif), Mutif(mutable_base, params)))
+            self.model.append(Mutif(motif, self.mut_index, params))
 
     @classmethod
     def from_file(cls, handle):
@@ -96,6 +126,15 @@ class Mutator(object):
     def __repr__(self):
         return "Mutator(width: %s, mut_index: %s, components: %s, mutable_bases: %s)" % (self.width,
                 self.mut_index, len(self.model), self.mutable_bases)
+
+    def iter(self, expand=False):
+        "Little helper method for iterating over all the components of the model"
+        for component in self.model:
+            if expand:
+                for kmer in component.matching_kmers():
+                    yield kmer, self.mut_index, component.spec
+            else:
+                yield component.pattern, self.mut_index, component.spec
 
     def mutate(self, query_kmer):
         """Returns (mutated, mutated_to), where mutated is
@@ -109,8 +148,8 @@ class Mutator(object):
         # First check to see if the bp is even mutable
         if bp in self.mutable_bases:
             # Check to see if any of the motifs match the kmer
-            for motif, mutif in self.model:
-                if re.match(motif, query_kmer):
+            for mutif in self.model:
+                if mutif.match(query_kmer):
                     # If they do, compute the new prob based on mutif
                     new_bp = mutif.mutate()
                     return (bp != new_bp, new_bp)
